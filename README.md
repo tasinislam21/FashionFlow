@@ -14,8 +14,8 @@ We have included the pre-trained checkpoint, dataset and results.
 ![image](sample/teaser.gif)
 
 ## Requirements
-- Python 3.8
-- PyTorch 1.10+
+- Python 3.9
+- PyTorch 1.11+
 - Tensoboard
 - cv2
 - transformers
@@ -34,14 +34,14 @@ cd ./FashionFlow/
 Install PyTorch and other dependencies:
 
 ```
-pip install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio===0.10.2+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113
 pip install -r requirements.txt
 ```
 
 ## Dataset
 
 Download the Fashion dataset by clicking on this link: 
-[[Fashion dataset]](https://www.dropbox.com/s/142kewkymaqwi2z/viton_hd_dataset.zip?dl=0)
+[[Fashion dataset]](https://vision.cs.ubc.ca/datasets/fashion/)
 
 Extract the files and place them in the ```fashion_dataset``` directory. The dataset should be organised as follows:
 
@@ -62,8 +62,15 @@ fashion_dataset
 ## Pre-trained Checkpoint
 
 Download the checkpoint by clicking on this link: 
-[[Pre-trained checkpoints]](https://www.dropbox.com/s/8q7mg1a7c8ci2ec/styleVTON_checkpoint.zip?dl=0) 
+[[Pre-trained checkpoints]](https://www.dropbox.com/scl/fi/p9fv7o3j7ti0yu2umsgmv/FashionFlow_checkpoint.pth?rlkey=mqsto9i4ujh6xhvab0e2s6n7d&dl=0) 
 Extract the files and place them in the ```checkpoint``` directory
 
 ## Inference
 To run the inference of our model, execute ```python inference.py```. The results will be saved in the ```result``` directory.
+
+## Train
+
+Before training, images and videos have to be projected to latent space for efficient training. Execute ```python project_latent_space.py``` where the tensors will be saved in the ```fashion_dataset_tensor``` directory.
+
+Run ```python -m torch.distributed.launch --nproc_per_node=<number of GPUs> train.py``` to train the model. The checkpoints will be saved in the ```checkpoint``` directory periodically. Also, you can view the training progress using tensorboardX located in ```video_progress``` or find the generated ```.mp4``` on ```training_sample```.
+

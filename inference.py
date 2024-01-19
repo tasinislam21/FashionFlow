@@ -21,8 +21,9 @@ frameLimit = 70
 
 parser = argparse.ArgumentParser(description="Configuration of the inference script.")
 parser.add_argument("--pretrained_model", default="checkpoint/model_2300_global_and_local.pth", help="Path to a pretrained model")
-parser.add_argument('--dataset', default="fashion_dataset/test", help="Path to a dataset")
+parser.add_argument('--dataset', default="fashion_dataset/test", help="Path to the dataset")
 parser.add_argument('--num_of_vid', type=int, default=1, help="Number of videos to be synthesised per conditional image")
+parser.add_argument('--output_dir', default="result", help="Path to save the videos")
 args = parser.parse_args()
 
 def cosine_beta_schedule(timesteps, start=0.0001, end=0.02):
@@ -195,8 +196,8 @@ def get_image_embedding(input_image):
     encoder_hidden_states = adapter(clip_hidden_states, vae_hidden_states)
     return encoder_hidden_states
 
-if not os.path.exists("result/"):
-    os.makedirs("result/")
+if not os.path.exists(args.output_dir):
+    os.makedirs(args.output_dir)
 
 step = 0
 for data in train_dataloader:

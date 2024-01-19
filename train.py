@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
+#os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
 from transformers import CLIPVisionModel, CLIPProcessor
 import torch.nn as nn
 import torch
@@ -18,8 +18,13 @@ from distributed import (get_rank, synchronize)
 from diffusers import AutoencoderKL
 from models.diffusion_model import SpaceTimeUnet
 
-parser = argparse.ArgumentParser(description="Pose with Style trainer")
+parser = argparse.ArgumentParser(description="Configuration of the training script.")
 parser.add_argument("--local_rank", type=int, default=0, help="local rank for distributed training")
+parser.add_argument('--dataset', default="fashion_dataset/train", help="Path to the dataset")
+parser.add_argument('--dataset_vae', default="fashion_dataset_tensor", help="Path to the tensors of latent space")
+parser.add_argument('--output_dir', default="checkpoint", help="Path to save the checkpoints")
+args = parser.parse_args()
+
 args = parser.parse_args()
 
 torch.distributed.init_process_group(backend="nccl", init_method="env://")
@@ -30,7 +35,7 @@ synchronize()
 frameLimit = 70
 
 if get_rank() == 0:
-    writer = SummaryWriter('samevideo')
+    writer = SummaryWriter('video_progress')
 
 def linear_beta_schedule(timesteps, start=0.0001, end=0.02):
     betas = []
@@ -74,48 +79,18 @@ def get_transform():
         ])
     return image_transforms
 
-# class VideoFrameDataset(data.Dataset):
-#     def __init__(self):
-#         super(VideoFrameDataset, self).__init__()
-#         self.path = osp.join("dataset_mp4")
-#         self.video_names = os.listdir(self.path)
-#         self.transform = get_transform()
-#
-#     def __getitem__(self, index):
-#         video_name = self.video_names[index]
-#         cap = cv2.VideoCapture(osp.join(self.path ,video_name))
-#         numberOfFrames = 241
-#         number = random.randint(0, numberOfFrames - frameLimit)
-#         for i in range(number, number + frameLimit):
-#             cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-#             _, frame = cap.read()
-#             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#             frame = Image.fromarray(frame)
-#             frame = self.transform(frame)
-#             if i == number:
-#                 inputImage = frame
-#             frame = frame.unsqueeze(0)
-#             if i == number:
-#                 restOfVideo = torch.clone(frame)
-#             else:
-#                 restOfVideo = torch.cat([restOfVideo, frame], 0)
-#         return {'image': inputImage, 'video': restOfVideo}
-#
-#     def __len__(self):
-#         return len(self.video_names)
-
 class VideoFrameDataset(data.Dataset):
     def __init__(self):
         super(VideoFrameDataset, self).__init__()
-        self.path = osp.join("dataset_mp4")
-        self.vae_path = osp.join("dataset_vae")
+        self.path = osp.join(args.dataset)
+        self.vae_path = osp.join(args.dataset_vae)
         self.video_names = os.listdir(self.path)
         self.transform = get_transform()
 
     def __getitem__(self, index):
         video_name = self.video_names[index]
         inputImage = torch.load(osp.join(self.vae_path, video_name[:-4]+"_image.pt"), map_location='cpu')
-        restOfVideo = torch.load(osp.join(self.vae_path, video_name[:-4]+".pt"), map_location='cpu')[0]
+        restOfVideo = torch.load(osp.join(self.vae_path, video_name[:-4]+".pt"), map_location='cpu')
         return {'image': inputImage, 'video': restOfVideo}
 
     def __len__(self):
@@ -149,7 +124,6 @@ clip_encoder = CLIPVisionModel.from_pretrained("openai/clip-vit-base-patch32").c
 clip_encoder.requires_grad_(False)
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-
 parameters = list(Net.parameters()) + list(adapter.parameters())
 optimizerG = optim.AdamW(parameters, lr=0.0001, weight_decay=0.01)
 
@@ -164,24 +138,6 @@ adapter = nn.parallel.DistributedDataParallel(
         device_ids=[args.local_rank],
         output_device=args.local_rank,
         broadcast_buffers=False)
-
-checkpoint = torch.load('checkpoint/vae_clip_1300_162625.pth')
-Net_state_dict = {}
-for k, v in checkpoint['net'].items():
-    name = 'module.' + k  # add the prefix 'module'
-    Net_state_dict[name] = v
-Net.load_state_dict(Net_state_dict)
-
-adapter_state_dict = {}
-for k, v in checkpoint['adapter'].items():
-    name = 'module.' + k  # add the prefix 'module'
-    adapter_state_dict[name] = v
-adapter.load_state_dict(adapter_state_dict)
-optimizerG.load_state_dict(checkpoint['opt'])
-del checkpoint
-del Net_state_dict
-del adapter_state_dict
-torch.cuda.empty_cache()
 
 def data_sampler(dataset, shuffle, distributed):
     if distributed:
@@ -207,13 +163,11 @@ def save_video_frames_as_mp4(frames, fps, save_path):
     video = cv2.VideoWriter(save_path, fourcc, fps, (frame_w, frame_h))
     frames = frames[0]
     for frame in frames:
-        #assert frame.shape[0] == 3, "RGBA/grayscale images are not supported"
         frame = np.array(TVF.to_pil_image(frame))
         video.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
     video.release()
 
 mseloss = torch.nn.MSELoss(reduction="mean")
-
 
 def get_loss(input_image, latent_video):
     timesteps = torch.randint(0, T, (batch,), device=device)
@@ -236,20 +190,6 @@ def get_loss(input_image, latent_video):
     for i in range(frameLimit):
         loss += mseloss(noise_pred[:, i, :, :, :], noise[:, i, :, :, :])
     return loss
-
-# @torch.no_grad()
-# def VAE_encode(video):
-#     for i in range(video.shape[1]):
-#         image = video[:, i, :, :, :]
-#         if i == 0:
-#             init_latent_dist = vae.encode(image).latent_dist.sample()
-#             init_latent_dist *= 0.18215
-#             encoded_video = (init_latent_dist).unsqueeze(1)
-#         else:
-#             init_latent_dist = vae.encode(image).latent_dist.sample()
-#             init_latent_dist *= 0.18215
-#             encoded_video = torch.cat([encoded_video, (init_latent_dist).unsqueeze(1)], 1)
-#     return encoded_video
 
 @torch.no_grad()
 def VAE_decode(video):
@@ -300,9 +240,14 @@ def get_image_embedding(input_image):
     encoder_hidden_states = adapter(clip_hidden_states, vae_hidden_states)
     return encoder_hidden_states
 
-step = 162625
+if not os.path.exists(args.output_dir):
+    os.makedirs(args.output_dir)
 
-for epoch in range(1301, 5000):
+if not os.path.exists('training_sample'):
+    os.makedirs('training_sample')
+
+step = 0
+for epoch in range(2500):
     Net.train()
     adapter.train()
     for data in train_dataloader:
@@ -323,7 +268,7 @@ for epoch in range(1301, 5000):
                 'net': Net.module.state_dict(),
                 'adapter': adapter.module.state_dict(),
                 'opt': optimizerG.state_dict()
-            }, "checkpoint/vae_clip_" + str(epoch) + "_" + str(step) + ".pth")
+            }, args.output_dir + "/model_" + str(epoch) + "_" + str(step) + ".pth")
     if get_rank() == 0 and epoch % 100 == 0:
         noise_video = torch.randn([1, frameLimit, 4, 80, 64]).to(device)
         encoder_hidden_states = get_image_embedding(input_image=image[0].unsqueeze(0))
@@ -337,10 +282,10 @@ for epoch in range(1301, 5000):
             final_video = VAE_decode(noise_video)
         writer.add_image('input image', image[0], step)
         writer.add_video('video', final_video, step)
-        save_video_frames_as_mp4(final_video, 25, "sample/video"+str(epoch)+".mp4")
+        save_video_frames_as_mp4(final_video, 25, "training_sample/video"+str(epoch)+".mp4")
 
 if get_rank() == 0:
     torch.save({
                 'net': Net.module.state_dict(),
                 'adapter': adapter.module.state_dict()
-                }, "checkpoint/vae_clip_e100.pth")
+                }, args.output_dir + "/vae_clip_e100.pth")
