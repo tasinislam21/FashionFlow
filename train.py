@@ -37,7 +37,7 @@ frameLimit = 70
 if get_rank() == 0:
     writer = SummaryWriter('video_progress')
 
-def linear_beta_schedule(timesteps, start=0.0001, end=0.02):
+def cosine_beta_schedule(timesteps, start=0.0001, end=0.02):
     betas = []
     for i in reversed(range(timesteps)):
         T = timesteps - 1
@@ -61,7 +61,7 @@ def forward_diffusion_sample(x_0, t):
     + sqrt_one_minus_alphas_cumprod_t.to(device) * noise.to(device), noise.to(device)
 
 T = 1000
-betas = linear_beta_schedule(timesteps=T)
+betas = cosine_beta_schedule(timesteps=T)
 # Pre-calculate different terms for closed form
 alphas = 1. - betas
 alphas_cumprod = torch.cumprod(alphas, axis=0)
