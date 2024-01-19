@@ -47,10 +47,16 @@ Extract the files and place them in the ```fashion_dataset``` directory. The dat
 
 ```
 fashion_dataset
-|-- 91-3003CN5S.mp4
-|-- 91BjuE6irxS.mp4
-|-- 91bxAN6BjAS.mp4
-|-- ...
+ test
+  |-- 91-3003CN5S.mp4
+  |-- 91BjuE6irxS.mp4
+  |-- 91bxAN6BjAS.mp4
+  |-- ...
+ train
+  |-- 81FyMPk-WIS.mp4
+  |-- 91+bCFG1jOS.mp4
+  |-- 91+PxmDyrgS.mp4
+  |-- ...
 ```
 
 ## Pre-trained Checkpoint

@@ -5,6 +5,6 @@ checkpoint/
 result_2400_local_only/
 result_2100_global_only/
 result_global_local_2300/
-dataset_mp4/
+fashion_dataset/
 __pycache__/
 pretrained/

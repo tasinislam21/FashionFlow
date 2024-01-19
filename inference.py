@@ -1,4 +1,4 @@
-import os
+import os, argparse
 #os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import random
 import torch
@@ -18,6 +18,12 @@ import torch.nn.functional as F
 
 device = "cuda"
 frameLimit = 70
+
+parser = argparse.ArgumentParser(description="Configuration of the inference script.")
+parser.add_argument("--pretrained_model", default="checkpoint/model_2300_global_and_local.pth", help="Path to a pretrained model")
+parser.add_argument('--dataset', default="fashion_dataset/test", help="Path to a dataset")
+parser.add_argument('--num_of_vid', type=int, default=1, help="Number of videos to be synthesised per conditional image")
+args = parser.parse_args()
 
 def cosine_beta_schedule(timesteps, start=0.0001, end=0.02):
     betas = []
@@ -65,8 +71,7 @@ def get_transform():
 class VideoFrameDataset(data.Dataset):
     def __init__(self):
         super(VideoFrameDataset, self).__init__()
-        self.path = osp.join("dataset_mp4_test")
-        #self.path = osp.join("dataset_mp4", "test")
+        self.path = osp.join(args.dataset)
         self.video_names = os.listdir(self.path)
         self.transform = get_transform()
 
@@ -108,7 +113,7 @@ clip_encoder = CLIPVisionModel.from_pretrained("openai/clip-vit-base-patch32").t
 clip_encoder.requires_grad_(False)
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-checkpoint = torch.load('checkpoint/model_2300_global_and_local.pth')
+checkpoint = torch.load(args.pretrained_model)
 Net.load_state_dict(checkpoint['net'])
 adapter.load_state_dict(checkpoint['adapter'])
 del checkpoint
@@ -190,8 +195,10 @@ def get_image_embedding(input_image):
     encoder_hidden_states = adapter(clip_hidden_states, vae_hidden_states)
     return encoder_hidden_states
 
-step = 0
+if not os.path.exists("result/"):
+    os.makedirs("result/")
 
+step = 0
 for data in train_dataloader:
     torch.cuda.empty_cache()
     step += 1
@@ -201,7 +208,7 @@ for data in train_dataloader:
     img = tensor2image(image)
     img.save("result/" + name + ".jpg")
     encoded_image = VAE_encode(image)
-    for video_num in range(1):
+    for video_num in range(args.num_of_vid):
         noise_video = torch.randn([1, frameLimit, 4, 80, 64]).to(device)
         noise_video[:, 0:1] = encoded_image
         with torch.no_grad():
@@ -211,4 +218,3 @@ for data in train_dataloader:
                 noise_video[:, 0:1] = encoded_image
             final_video = VAE_decode(noise_video, vae)
         save_video_frames_as_mp4(final_video, 25, "result/" + name + str(video_num) + ".mp4")
-        #save_video_frames_as_mp4(final_video, 25, "result/" + name + ".mp4")
