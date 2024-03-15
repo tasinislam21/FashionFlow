@@ -678,7 +678,6 @@ class SpaceTimeUnet(nn.Module):
                 Downsample(dim_out, downsample_time=compress_time),
                 cross_attns_d if exists(cross_attns_d) else None
             ]))
-
             self.ups.append(mlist([
                 ResnetBlock(dim_out * 2, dim_in, timestep_cond_dim=timestep_cond_dim),
                 mlist(

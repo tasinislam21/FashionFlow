@@ -20,7 +20,7 @@ device = "cuda"
 frameLimit = 70
 
 parser = argparse.ArgumentParser(description="Configuration of the inference script.")
-parser.add_argument("--pretrained_model", default="checkpoint/model_2300_global_and_local.pth", help="Path to a pretrained model")
+parser.add_argument("--pretrained_model", default="checkpoint/FashionFlow_checkpoint.pth", help="Path to a pretrained model")
 parser.add_argument('--dataset', default="fashion_dataset/test", help="Path to the dataset")
 parser.add_argument('--num_of_vid', type=int, default=1, help="Number of videos to be synthesised per conditional image")
 parser.add_argument('--output_dir', default="result", help="Path to save the videos")

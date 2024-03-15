@@ -1,5 +1,5 @@
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from transformers import CLIPVisionModel, CLIPProcessor
 import torch.nn as nn
 import torch

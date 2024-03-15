@@ -21,7 +21,9 @@ We have included the pre-trained checkpoint, dataset and results.
 - transformers
 - diffusers
 
+## Model Specification
 
+The model was developed using PyTorch and loads pretrained weights for VAE and CLIP. The latent diffusion model consists of a 1D convolutional layer stacked against a 2D convolutional layer (forming a pseudo 3D convolution) and includes attention layers.
 ## Installation
 
 Clone this repository:
@@ -58,6 +60,8 @@ fashion_dataset
   |-- 91+PxmDyrgS.mp4
   |-- ...
 ```
+
+Feel free to add your own dataset while following the provided file and folder structure.
 
 ## Pre-trained Checkpoint
 
