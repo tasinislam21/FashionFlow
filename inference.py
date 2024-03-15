@@ -120,10 +120,10 @@ adapter.load_state_dict(checkpoint['adapter'])
 del checkpoint
 torch.cuda.empty_cache()
 
-train_dataset = VideoFrameDataset()
+inference_dataset = VideoFrameDataset()
 batch = 1
-train_dataloader = torch.utils.data.DataLoader(
-            train_dataset,
+inference_dataset = torch.utils.data.DataLoader(
+            inference_dataset,
             batch_size=batch,
             num_workers=0)
 
@@ -200,8 +200,7 @@ if not os.path.exists(args.output_dir):
     os.makedirs(args.output_dir)
 
 step = 0
-for data in train_dataloader:
-    torch.cuda.empty_cache()
+for data in inference_dataset:
     step += 1
     name = data["name"][0]
     image = data['image'].to(device=device)
