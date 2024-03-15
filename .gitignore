@@ -9,3 +9,4 @@ fashion_dataset/
 __pycache__/
 pretrained/
 result/
+sample/*.pptx

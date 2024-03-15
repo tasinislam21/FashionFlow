@@ -78,3 +78,6 @@ Before training, images and videos have to be projected to latent space for effi
 
 Run ```python -m torch.distributed.launch --nproc_per_node=<number of GPUs> train.py``` to train the model. The checkpoints will be saved in the ```checkpoint``` directory periodically. Also, you can view the training progress using tensorboardX located in ```video_progress``` or find the generated ```.mp4``` on ```training_sample```.
 
+## Comparison
+
+![image](sample/comparison.gif)
