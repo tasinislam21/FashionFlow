@@ -23,7 +23,8 @@ We have included the pre-trained checkpoint, dataset and results.
 
 ## Model Specification
 
-The model was developed using PyTorch and loads pretrained weights for VAE and CLIP. The latent diffusion model consists of a 1D convolutional layer stacked against a 2D convolutional layer (forming a pseudo 3D convolution) and includes attention layers.
+The model was developed using PyTorch and loads pretrained weights for VAE and CLIP. The latent diffusion model consists of a 1D convolutional layer stacked against a 2D convolutional layer (forming a pseudo 3D convolution) and includes attention layers. See the ```model_structure.txt``` file to see the exact layers of our LDM.
+
 ## Installation
 
 Clone this repository:
